@@ -3,15 +3,15 @@ import torch.nn.functional as F
 
 from .utils import parallel_scan_log
 
-__all__ = ["MinLSTMCell", "MinLSTM", ]
+__all__ = ["MinLSTM", ]
 
 
-class MinLSTMCell(nn.Module):
+class MinLSTM(nn.Module):
 
     def __init__(
         self, input_size: int, hidden_size: int 
     ):
-        super(MinLSTMCell, self).__init__()
+        super(MinLSTM, self).__init__()
 
         self.input_size= input_size
         self.hidden_size= hidden_size
@@ -61,55 +61,6 @@ class MinLSTMCell(nn.Module):
         )
 
         return h
-    
-
-class MinLSTM(nn.Module):
-
-    def __init__(
-        self, input_size: int, hidden_size: int, num_layers: int
-    ):
-        super(MinLSTM, self).__init__()
-
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        
-
-        self.cell_layers = nn.ModuleList([
-            MinLSTMCell(
-                input_size= self.input_size if i == 0 else self.hidden_size,
-                hidden_size=self.hidden_size
-            )
-            for i in range(self.num_layers)
-        ])
-
-    def forward(self, x: torch.Tensor, h0: torch.Tensor = None):
-
-        # x : [batch_size, seq_len, input_size]
-        # h0: [batch_size, num_layers, hidden_size]
-
-        assert x.ndim == 3, "'x' must be of shape of 3 [batch_size, seq_len, input_size]"
-
-        batch_size, _, _ = x.size()
-
-        if h0 is None:
-            h0 = torch.zeros(
-                batch_size, self.num_layers, self.hidden_size, dtype=x.dtype, device=x.device
-            )
-        
-        h_outs_list = []
-        h_t = 0
-
-        for i, cell in enumerate(self.cell_layers):
-
-            h_t = cell(x, h0[:, i, :].unsqueeze(1))
-            x = h_t
-            
-            h_outs_list.append(h_t[:, -1, :].unsqueeze(1)) 
-
-        h_outs = torch.cat(h_outs_list, dim=1)
-        outs = h_t 
-        return outs, h_outs
 
 
 
