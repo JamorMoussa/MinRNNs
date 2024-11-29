@@ -50,8 +50,8 @@ class MinLSTMCell(nn.Module):
 
         h_tilde = self.h_tilde(x)
 
-        fp_t = f_t.div((f_t + i_t))
-        ip_t = i_t.div((f_t + i_t))
+        fp_t = f_t.div((f_t + i_t + 1e-8))
+        ip_t = i_t.div((f_t + i_t + 1e-8))
 
         h = parallel_scan_log(
             fp_t, 
@@ -75,13 +75,13 @@ class MinLSTM(nn.Module):
         self.num_layers = num_layers
         
 
-        self.cell_layers = nn.ModuleList(
+        self.cell_layers = nn.ModuleList([
             MinLSTMCell(
                 input_size= self.input_size if i == 0 else self.hidden_size,
                 hidden_size=self.hidden_size
             )
             for i in range(self.num_layers)
-        )
+        ])
 
     def forward(self, x: torch.Tensor, h0: torch.Tensor = None):
 
@@ -104,7 +104,7 @@ class MinLSTM(nn.Module):
 
             h_t = cell(x, h0[:, i, :].unsqueeze(1))
             x = h_t
-
+            
             h_outs_list.append(h_t[:, -1, :].unsqueeze(1)) 
 
         h_outs = torch.cat(h_outs_list, dim=1)
